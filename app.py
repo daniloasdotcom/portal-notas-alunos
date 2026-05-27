@@ -53,7 +53,6 @@ if matricula_selecionada != "Selecione uma matrícula...":
         row = aluno_df.iloc[0]
 
         # Verifica se a prova já foi corrigida (se o campo não está vazio)
-        # Nota: Mantido o nome original da coluna 'Prontuação na Prova' conforme a planilha
         prova_corrigida = not pd.isna(row['Prontuação na Prova'])
 
         # 4. Exibição dos resultados principais (Resumo Geral)
@@ -68,10 +67,25 @@ if matricula_selecionada != "Selecione uma matrícula...":
             st.success("Notas encontradas com sucesso!")
             nota_prova_str = f"{float(row['Prontuação na Prova']):.2f}"
             nota_total_str = f"{float(row['Pontuação total (Prova + Extra)']):.2f}"
+
+            # Cálculos dinâmicos da soma de pontos por questão
+            total_q1 = pd.to_numeric(row[['Pontuação', 'Pontuação.1', 'Pontuação.2', 'Pontuação.3', 'Pontuação.4']],
+                                     errors='coerce').sum()
+            total_q2 = pd.to_numeric(
+                row[['Item a.1', 'Item b.1', 'Item c.1', 'Item d.1', 'Item e.1', 'Item f', 'Item g']],
+                errors='coerce').sum()
+            total_q3 = pd.to_numeric(row[['Item a.2', 'Item b.2', 'Item c.2']], errors='coerce').sum()
+
+            nota_q1_str = f"**{total_q1:.2f}** pontos"
+            nota_q2_str = f"**{total_q2:.2f}** pontos"
+            nota_q3_str = f"**{total_q3:.2f}** pontos"
         else:
             st.warning("⚠️ Sua prova está em fase de correção. Os dados detalhados serão atualizados em breve.")
             nota_prova_str = "Em correção"
             nota_total_str = "Aguardando"
+            nota_q1_str = "*Em correção*"
+            nota_q2_str = "*Em correção*"
+            nota_q3_str = "*Em correção*"
 
         col1, col2, col3 = st.columns(3)
         col1.metric("Nota da Prova", nota_prova_str)
@@ -87,6 +101,8 @@ if matricula_selecionada != "Selecione uma matrícula...":
 
         # --- Painel da Questão 01 (Itens a até e + Pontuações) ---
         with tab1:
+            st.markdown(f"🏅 **Nota total da Questão 01:** {nota_q1_str}")
+
             df_q1 = pd.DataFrame({
                 "Item": ["a", "b", "c", "d", "e"],
                 "Respostas / Fração": [
@@ -115,6 +131,8 @@ if matricula_selecionada != "Selecione uma matrícula...":
 
         # --- Painel da Questão 02 (Itens a até g) ---
         with tab2:
+            st.markdown(f"🏅 **Nota total da Questão 02:** {nota_q2_str}")
+
             df_q2 = pd.DataFrame({
                 "Item": ["a", "b", "c", "d", "e", "f", "g"],
                 "Pontuação Obtida": [
@@ -137,6 +155,8 @@ if matricula_selecionada != "Selecione uma matrícula...":
 
         # --- Painel da Questão 03 (Itens a até c) ---
         with tab3:
+            st.markdown(f"🏅 **Nota total da Questão 03:** {nota_q3_str}")
+
             df_q3 = pd.DataFrame({
                 "Item": ["a", "b", "c"],
                 "Pontuação Obtida": [
