@@ -22,6 +22,13 @@ def carregar_dados():
     return df
 
 
+# Função auxiliar para formatar as notas nas tabelas (previne decimais gigantes e trata vazios)
+def formatar_nota(valor):
+    if pd.isna(valor) or str(valor).strip() == "":
+        return "-"
+    return f"{float(valor):.2f}"
+
+
 # Tenta carregar o banco de dados
 try:
     df = carregar_dados()
@@ -117,9 +124,14 @@ if matricula_selecionada != "Selecione uma matrícula...":
                 ]
             })
 
-            # Exibição com tratamento de vazios, centralização e novos cabeçalhos
+            # Aplica a formatação na coluna de notas para fixar 2 casas decimais e tratar nulos
+            df_q1["Pontuação Obtida"] = df_q1["Pontuação Obtida"].apply(formatar_nota)
+            df_q1["Respostas / Fração"] = df_q1["Respostas / Fração"].fillna(
+                "-")  # Mantém os hífens nas respostas em branco
+
+            # Exibição da tabela final (sem precisar de .fillna aqui)
             st.dataframe(
-                df_q1.fillna("-"),
+                df_q1,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
@@ -143,8 +155,11 @@ if matricula_selecionada != "Selecione uma matrícula...":
                 ]
             })
 
+            # Aplica a formatação
+            df_q2["Pontuação Obtida"] = df_q2["Pontuação Obtida"].apply(formatar_nota)
+
             st.dataframe(
-                df_q2.fillna("-"),
+                df_q2,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
@@ -165,8 +180,11 @@ if matricula_selecionada != "Selecione uma matrícula...":
                 ]
             })
 
+            # Aplica a formatação
+            df_q3["Pontuação Obtida"] = df_q3["Pontuação Obtida"].apply(formatar_nota)
+
             st.dataframe(
-                df_q3.fillna("-"),
+                df_q3,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
