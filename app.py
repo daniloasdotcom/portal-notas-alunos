@@ -3,7 +3,7 @@ import pandas as pd
 
 # 1. Configuração da página e identidade visual
 st.set_page_config(page_title="Portal de Notas", page_icon="🎓", layout="centered")
-st.title("📊 Consulta de Desempenho")
+st.title("📊 Consulta - Prova 02 - Fertilidade do Solo")
 
 
 # 2. Carregamento e preparação dos dados (com cache para performance)
