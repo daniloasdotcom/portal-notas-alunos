@@ -108,7 +108,7 @@ if matricula_selecionada != "Selecione uma matrícula...":
                 hide_index=True,
                 column_config={
                     "Item": st.column_config.TextColumn("Item", alignment="center"),
-                    "Respostas / Fração": st.column_config.TextColumn("Sua Resposta / Fração", alignment="center"),
+                    "Respostas / Fração": st.column_config.TextColumn("Acertos / Itens", alignment="center"),
                     "Pontuação Obtida": st.column_config.TextColumn("Nota Obtida", alignment="center"),
                 }
             )
