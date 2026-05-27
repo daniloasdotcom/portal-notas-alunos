@@ -29,82 +29,131 @@ except FileNotFoundError:
     st.error("Arquivo 'notas.xlsx' não encontrado. Verifique se ele está na mesma pasta do seu script 'app.py'.")
     st.stop()
 
-# 3. Interface do usuário - Entrada de dados
-st.markdown("Digite o seu número de matrícula abaixo para consultar suas notas individuais.")
+# 3. Interface do usuário - Campo de Autocomplete (Selectbox com busca)
+st.markdown("Clique no campo abaixo e digite o seu número de matrícula para consultar suas notas.")
 
-matricula_input = st.text_input("Número de Matrícula:", placeholder="Ex: 2023200939")
+# Criamos uma lista ordenada com todas as matrículas únicas do banco de dados
+lista_matriculas = sorted(df['Matrícula'].dropna().unique())
 
-if st.button("Buscar Notas"):
-    if matricula_input:
-        # Filtra o banco de dados pela matrícula digitada
-        aluno_df = df[df['Matrícula'] == matricula_input]
+# Adicionamos uma opção neutra no início para o app abrir "vazio"
+opcoes_selectbox = ["Selecione uma matrícula..."] + lista_matriculas
 
-        if not aluno_df.empty:
-            st.success("Aluno encontrado com sucesso!")
+matricula_selecionada = st.selectbox(
+    "Número de Matrícula:",
+    options=opcoes_selectbox,
+    index=0  # Começa apontando para "Selecione uma matrícula..."
+)
 
-            # 4. Exibição dos resultados principais (Resumo Geral)
-            st.subheader("Resumo Geral")
-            col1, col2, col3 = st.columns(3)
+# O código agora executa automaticamente assim que uma matrícula válida é escolhida
+if matricula_selecionada != "Selecione uma matrícula...":
+    # Filtra o banco de dados pela matrícula selecionada
+    aluno_df = df[df['Matrícula'] == matricula_selecionada]
 
-            # Conversão segura para float para evitar erros de dízima na tela
-            nota_prova = float(aluno_df.iloc[0]['Prontuação na Prova'])
-            nota_extra = float(aluno_df.iloc[0]['Pontuação dos exercícios extras'])
-            nota_total = float(aluno_df.iloc[0]['Pontuação total (Prova + Extra)'])
+    if not aluno_df.empty:
+        row = aluno_df.iloc[0]
 
-            # O formato :.2f força a exibição de exatamente duas casas decimais
-            col1.metric("Nota da Prova", f"{nota_prova:.2f}")
-            col2.metric("Exercícios Extras", f"{nota_extra:.2f}")
-            col3.metric("Pontuação Total", f"{nota_total:.2f}")
+        # Verifica se a prova já foi corrigida (se o campo não está vazio)
+        # Nota: Mantido o nome original da coluna 'Prontuação na Prova' conforme a planilha
+        prova_corrigida = not pd.isna(row['Prontuação na Prova'])
 
-            st.divider()
+        # 4. Exibição dos resultados principais (Resumo Geral)
+        st.subheader("Resumo Geral")
 
-            # 5. Exibição do detalhamento estruturado por Questões utilizando Abas
-            st.subheader("Detalhamento por Questão")
+        # Armazena a nota de exercícios extras com segurança
+        nota_extra = row['Pontuação dos exercícios extras']
+        nota_extra_str = f"{float(nota_extra):.2f}" if not pd.isna(nota_extra) else "0.00"
 
-            tab1, tab2, tab3 = st.tabs(["Questão 01", "Questão 02", "Questão 03"])
-
-            # --- Painel da Questão 01 (Itens a até e + Pontuações) ---
-            with tab1:
-                df_q1 = pd.DataFrame({
-                    "Item": ["a", "b", "c", "d", "e"],
-                    "Respostas / Fração": [
-                        aluno_df.iloc[0]['Item a'], aluno_df.iloc[0]['Item b'],
-                        aluno_df.iloc[0]['Item c'], aluno_df.iloc[0]['Item d'],
-                        aluno_df.iloc[0]['Item e']
-                    ],
-                    "Pontuação Obtida": [
-                        aluno_df.iloc[0]['Pontuação'], aluno_df.iloc[0]['Pontuação.1'],
-                        aluno_df.iloc[0]['Pontuação.2'], aluno_df.iloc[0]['Pontuação.3'],
-                        aluno_df.iloc[0]['Pontuação.4']
-                    ]
-                })
-                st.dataframe(df_q1, use_container_width=True, hide_index=True)
-
-            # --- Painel da Questão 02 (Itens a até g) ---
-            with tab2:
-                df_q2 = pd.DataFrame({
-                    "Item": ["a", "b", "c", "d", "e", "f", "g"],
-                    "Pontuação Obtida": [
-                        aluno_df.iloc[0]['Item a.1'], aluno_df.iloc[0]['Item b.1'],
-                        aluno_df.iloc[0]['Item c.1'], aluno_df.iloc[0]['Item d.1'],
-                        aluno_df.iloc[0]['Item e.1'], aluno_df.iloc[0]['Item f'],
-                        aluno_df.iloc[0]['Item g']
-                    ]
-                })
-                st.dataframe(df_q2, use_container_width=True, hide_index=True)
-
-            # --- Painel da Questão 03 (Itens a até c) ---
-            with tab3:
-                df_q3 = pd.DataFrame({
-                    "Item": ["a", "b", "c"],
-                    "Pontuação Obtida": [
-                        aluno_df.iloc[0]['Item a.2'], aluno_df.iloc[0]['Item b.2'],
-                        aluno_df.iloc[0]['Item c.2']
-                    ]
-                })
-                st.dataframe(df_q3, use_container_width=True, hide_index=True)
-
+        # Define dinamicamente o que exibir com base no status da correção
+        if prova_corrigida:
+            st.success("Notas encontradas com sucesso!")
+            nota_prova_str = f"{float(row['Prontuação na Prova']):.2f}"
+            nota_total_str = f"{float(row['Pontuação total (Prova + Extra)']):.2f}"
         else:
-            st.warning("Matrícula não encontrada. Verifique se você digitou corretamente.")
-    else:
-        st.info("Por favor, insira uma matrícula antes de buscar.")
+            st.warning("⚠️ Sua prova está em fase de correção. Os dados detalhados serão atualizados em breve.")
+            nota_prova_str = "Em correção"
+            nota_total_str = "Aguardando"
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Nota da Prova", nota_prova_str)
+        col2.metric("Exercícios Extras", nota_extra_str)
+        col3.metric("Pontuação Total", nota_total_str)
+
+        st.divider()
+
+        # 5. Exibição do detalhamento estruturado por Questões utilizando Abas
+        st.subheader("Detalhamento por Questão")
+
+        tab1, tab2, tab3 = st.tabs(["Questão 01", "Questão 02", "Questão 03"])
+
+        # --- Painel da Questão 01 (Itens a até e + Pontuações) ---
+        with tab1:
+            df_q1 = pd.DataFrame({
+                "Item": ["a", "b", "c", "d", "e"],
+                "Respostas / Fração": [
+                    row['Item a'], row['Item b'],
+                    row['Item c'], row['Item d'],
+                    row['Item e']
+                ],
+                "Pontuação Obtida": [
+                    row['Pontuação'], row['Pontuação.1'],
+                    row['Pontuação.2'], row['Pontuação.3'],
+                    row['Pontuação.4']
+                ]
+            })
+
+            # Exibição com tratamento de vazios, centralização e novos cabeçalhos
+            st.dataframe(
+                df_q1.fillna("-"),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Item": st.column_config.TextColumn("Item", alignment="center"),
+                    "Respostas / Fração": st.column_config.TextColumn("Sua Resposta / Fração", alignment="center"),
+                    "Pontuação Obtida": st.column_config.TextColumn("Nota Obtida", alignment="center"),
+                }
+            )
+
+        # --- Painel da Questão 02 (Itens a até g) ---
+        with tab2:
+            df_q2 = pd.DataFrame({
+                "Item": ["a", "b", "c", "d", "e", "f", "g"],
+                "Pontuação Obtida": [
+                    row['Item a.1'], row['Item b.1'],
+                    row['Item c.1'], row['Item d.1'],
+                    row['Item e.1'], row['Item f'],
+                    row['Item g']
+                ]
+            })
+
+            st.dataframe(
+                df_q2.fillna("-"),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Item": st.column_config.TextColumn("Item", alignment="center"),
+                    "Pontuação Obtida": st.column_config.TextColumn("Nota Obtida", alignment="center"),
+                }
+            )
+
+        # --- Painel da Questão 03 (Itens a até c) ---
+        with tab3:
+            df_q3 = pd.DataFrame({
+                "Item": ["a", "b", "c"],
+                "Pontuação Obtida": [
+                    row['Item a.2'], row['Item b.2'],
+                    row['Item c.2']
+                ]
+            })
+
+            st.dataframe(
+                df_q3.fillna("-"),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Item": st.column_config.TextColumn("Item", alignment="center"),
+                    "Pontuação Obtida": st.column_config.TextColumn("Nota Obtida", alignment="center"),
+                }
+            )
+else:
+    # Mensagem discreta enquanto nenhum aluno foi selecionado
+    st.info("Aguardando a seleção de uma matrícula para exibir as notas.")
